@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video-as-Answer: Predict and Generate Next Video Event with Joint-GRPO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="images/icon.png">
+    <link rel="apple-touch-icon" href="images/icon.png">
+    <link rel="shortcut icon" href="images/icon.png" type="image/png">
+    <style>
+
+
+
+/* Citation部分样式 */
+#citation {
+    margin: 3rem 0;
+    padding: 2.5rem 2rem;
+}
+
+#citation .title {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    color: var(--primary-color); /* 使用主题蓝色 */
+    font-weight: 700;
+    text-align: left; /* 与Abstract标题对齐 */
+    padding-bottom: 0.5rem;
+}
+
+.citation-container {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#citation pre {
+    background: transparent;
+    border: none;
+    padding: 2rem;
+    padding-right: 120px; /* 为按钮留出空间 */
+    margin: 0;
+    overflow-x: auto;
+}
+
+#citation code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background: none;
+    white-space: pre;
+}
+
+.copy-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.copy-button:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-medium);
+}
+
+.copy-button.copied {
+    background: #10b981;
+}
+
+.copy-button.copied .copy-text {
+    display: none;
+}
+
+.copy-button.copied::after {
+    content: "Copied!";
+}
+
+.copy-icon {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    #citation {
+        padding: 2rem 1rem;
+    }
+    
+    #citation .title {
+        font-size: 1.8rem;
+    }
+    
+    #citation pre {
+        padding: 1.5rem;
+        padding-right: 100px;
+    }
+    
+    #citation code {
+        font-size: 1rem;
+    }
+    
+    .copy-button {
+        top: 0.8rem;
+        right: 0.8rem;
+        padding: 0.5rem 0.8rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #citation code {
+        font-size: 0.95rem;
+    }
+    
+    #citation pre {
+        padding: 1.2rem;
+        padding-right: 90px;
+    }
+    
+    .copy-button {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin: 0 1.2rem 1.2rem;
+        width: calc(100% - 2.4rem);
+        justify-content: center;
+    }
+    
+    #citation pre {
+        padding-right: 1.2rem;
+    }
+}
+/* Method部分样式 */
+.method {
+    margin: 3rem 0;
+    padding: 2.5rem 2rem; /* 增加左右内边距，与abstract一致 */
+}
+
+.method-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+    margin-top: 1.5rem;
+}
+
+/* 图片行布局 */
+.method-figures-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 现在两个图大小相同 */
+    gap: 2rem; /* 保持适当间距 */
+    align-items: stretch;
+}
+
+.method-figure-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.method-figure {
+    text-align: center;
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1rem; /* 进一步减少内边距，让图片更大 */
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border-light);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.method-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+    display: block;
+    margin: 0 auto;
+}
+
+.method-image:hover {
+    transform: scale(1.02);
+}
+
+/* 两个图片样式一致，都更大 */
+.vans-image,
+.grpo-image {
+    width: 100%;
+    height: 380px; /* 增加高度，让图片更大 */
+    object-fit: contain;
+}
+
+.figure-caption {
+    margin-top: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.method-description {
+    line-height: 1.6;
+    max-width: 100%;
+    padding: 0 1rem; /* 增加文字内边距 */
+}
+
+.method-highlights {
+    margin-top: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    padding: 0 0.5rem; /* 亮点部分也增加内边距 */
+}
+
+.highlight-item {
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 10px;
+    border-left: 4px solid var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.highlight-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+.highlight-item h4 {
+    color: var(--text-primary);
+    margin: 0 0 0.8rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.highlight-item p {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .method-figures-row {
+        gap: 1.5rem;
+    }
+    
+    .vans-image,
+    .grpo-image {
+        height: 350px;
+    }
+}
+
+@media (max-width: 992px) {
+    .method {
+        padding: 2.5rem 1.5rem; /* 中等屏幕调整内边距 */
+    }
+    
+    .method-figures-row {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .method-highlights {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+    }
+    
+    .vans-image,
+    .grpo-image {
+        height: 320px;
+    }
+}
+
+@media (max-width: 768px) {
+    .method {
+        margin: 2rem 0;
+        padding: 2rem 1rem; /* 移动端调整内边距 */
+    }
+    
+    .method-content {
+        gap: 2rem;
+    }
+    
+    .method-figure {
+        padding: 0.8rem;
+    }
+    
+    .vans-image,
+    .grpo-image {
+        height: 280px;
+    }
+    
+    .highlight-item {
+        padding: 1.2rem;
+    }
+    
+    .method-figures-row {
+        gap: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .method {
+        padding: 1.5rem 0.8rem;
+    }
+    
+    .method-figure {
+        padding: 0.6rem;
+    }
+    
+    .vans-image,
+    .grpo-image {
+        height: 220px;
+    }
+    
+    .highlight-item {
+        padding: 1rem;
+    }
+    
+    .highlight-item h4 {
+        font-size: 1rem;
+    }
+    
+    .figure-caption {
+        font-size: 0.9rem;
+    }
+    
+    .method-description {
+        padding: 0 0.5rem;
+    }
+}
+.method-challenge,
+.method-solution {
+    margin-bottom: 2rem;
+}
+
+.method-challenge h3,
+.method-solution h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+}
+
+.method-challenge p,
+.method-solution p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.method-conclusion {
+    font-weight: 500;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    margin-top: 1.5rem;
+}
+
+.figure-caption {
+    margin-top: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    text-align: center;
+}
+
+
+
+
+
+
+        .teaser-image {
+            border: none !important;
+            outline: none !important;
+        }
+        /* 作者链接样式 */
+        .author-link {
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .author-link span {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .author-link:hover span {
+            color: var(--primary-color);
+            background: rgba(74, 144, 226, 0.1);
+            transform: translateY(-1px);
+        }
+
+
+        .author-list-header {
+            font-size: 1.4rem; /* 从原来的大约1.1rem增大 */
+            font-weight: 600;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        /* 增大单位字体 */
+        .affiliations-header {
+            font-size: 1.1rem; /* 从原来的大约0.9rem增大 */
+            margin-bottom: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        /* 为作者名字添加可点击样式 */
+        .author-list-header span {
+            cursor: pointer;
+            transition: color 0.3s ease;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .author-list-header span:hover {
+            color: var(--primary-color);
+            background: rgba(74, 144, 226, 0.1);
+        }
+        .i2v-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .i2v-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-light);
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .i2v-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            border-color: var(--primary-color);
+        }
+
+        .i2v-card.active {
+            border-color: var(--primary-color);
+            background: var(--header-accent-light);
+        }
+
+        .i2v-card .i2v-text {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 1.05rem;
+        }
+
+        .expanded-i2v {
+            background: var(--bg-card);
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .i2v-content {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            margin-bottom: 1.2rem;
+        }
+
+        .i2v-image-container {
+            flex: 1;
+            min-width: 200px;
+            max-width: 300px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8fafc;
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            aspect-ratio: 1 / 1;
+        }
+
+        .i2v-image-container:hover {
+            transform: scale(1.02);
+        }
+
+        .i2v-image {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        .i2v-question {
+            flex: 2;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .i2v-question h4 {
+            color: var(--text-primary);
+            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .i2v-question p {
+            color: var(--text-secondary);
+            line-height: 1.4;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .i2v-answers-section {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        .i2v-answers-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.2rem;
+            margin-top: 1.2rem;
+        }
+
+        .i2v-answer-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .i2v-answer-card:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .i2v-method-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.3rem;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .i2v-video-container {
+            width: 100%;
+            position: relative;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #000;
+            aspect-ratio: 1 / 1;
+            cursor: pointer;
+        }
+
+        .i2v-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .i2v-video-container:hover .i2v-video {
+            transform: scale(1.02);
+        }
+
+        .modal-image-square {
+            width: 100%;
+            max-height: 80vh;
+            border-radius: 12px;
+            object-fit: contain;
+            aspect-ratio: 1 / 1;
+        }
+
+        @media (max-width: 1400px) {
+            .i2v-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .i2v-answers-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 992px) {
+            .i2v-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .i2v-content {
+                flex-direction: column;
+            }
+            
+            .i2v-image-container {
+                min-width: 100%;
+            }
+            
+            .i2v-answers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .i2v-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .generalization-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .generalization-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-light);
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .generalization-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            border-color: var(--primary-color);
+        }
+
+        .generalization-card.active {
+            border-color: var(--primary-color);
+            background: var(--header-accent-light);
+        }
+
+        .generalization-card .generalization-text {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 1.05rem;
+        }
+
+        .expanded-generalization {
+            background: var(--bg-card);
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .generalization-content {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            margin-bottom: 1.2rem;
+        }
+
+        .generalization-input {
+            flex: 1;
+            min-width: 300px;
+            aspect-ratio: 16 / 9;
+            cursor: pointer;
+        }
+
+        .generalization-input video {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #000;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .generalization-input:hover video {
+            transform: scale(1.02);
+        }
+
+        .generalization-questions {
+            flex: 2;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.8rem;
+        }
+
+        .question-item {
+            padding: 0.8rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .question-item h4 {
+            color: var(--text-primary);
+            margin: 0 0 0.3rem 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .question-item p {
+            color: var(--text-secondary);
+            line-height: 1.3;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .generalization-answers-section {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        .generalization-answers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+            margin-top: 1.2rem;
+        }
+
+        .generalization-answer-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .generalization-answer-card:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .generalization-method-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.3rem;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 1400px) {
+            .generalization-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .generalization-answers-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 992px) {
+            .generalization-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .generalization-content {
+                flex-direction: column;
+            }
+            
+            .generalization-input {
+                min-width: 100%;
+            }
+            
+            .generalization-answers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .generalization-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .question-item {
+                padding: 0.6rem;
+                min-height: 50px;
+            }
+        }
+
+        .question-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .question-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-light);
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+            border-color: var(--primary-color);
+        }
+
+        .question-card.active {
+            border-color: var(--primary-color);
+            background: var(--header-accent-light);
+        }
+
+        .question-card .question-text {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            font-size: 1.05rem;
+        }
+
+        .answer-section {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        .answers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+            margin-top: 1.2rem;
+        }
+
+        .answer-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .answer-card:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .answer-card.expanded {
+            border-color: var(--primary-color);
+            background: var(--header-accent-light);
+        }
+
+        .answer-video-container {
+            width: 100%;
+            position: relative;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #000;
+            aspect-ratio: 16 / 9;
+            cursor: pointer;
+        }
+
+        .answer-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .answer-video-container:hover .answer-video {
+            transform: scale(1.02);
+        }
+
+        .answer-text-container {
+            position: relative;
+            min-height: 1.8rem;
+            cursor: pointer;
+        }
+
+        .answer-text-preview {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.3;
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .answer-text-full {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin: 0;
+            display: none;
+        }
+
+        .answer-card.expanded .answer-text-preview {
+            display: none;
+        }
+
+        .answer-card.expanded .answer-text-full {
+            display: block;
+        }
+
+        .expand-text-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            padding: 0;
+            text-decoration: underline;
+            font-weight: 500;
+        }
+
+        .method-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.3rem;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .expanded-question {
+            background: var(--bg-card);
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .expanded-content {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            margin-bottom: 1.2rem;
+        }
+
+        .expanded-video {
+            flex: 1;
+            min-width: 280px;
+            aspect-ratio: 16 / 9;
+            cursor: pointer;
+        }
+
+        .expanded-video video {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #000;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .expanded-video:hover video {
+            transform: scale(1.02);
+        }
+
+        .expanded-question-text {
+            flex: 2;
+            padding: 0.8rem;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+        }
+
+        .expanded-question-text h4 {
+            color: var(--text-primary);
+            margin: 0 0 0.5rem 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .expanded-question-text p {
+            color: var(--text-secondary);
+            line-height: 1.4;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-title h2 {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .section-title .subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in;
+        }
+
+        .video-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .video-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            position: relative;
+            width: 1200px;
+            max-width: 95%;
+            max-height: 95%;
+        }
+
+        .modal-video {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            border-radius: 12px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: -45px;
+            right: 0;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2.2rem;
+            cursor: pointer;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s ease;
+            z-index: 1001;
+        }
+
+        .modal-close:hover {
+            color: var(--primary-color);
+        }
+
+        .modal-method-name {
+            position: absolute;
+            top: -50px;
+            left: 0;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-content-wrapper {
+            max-width: 1800px;
+        }
+
+        .container {
+            max-width: 1800px;
+        }
+
+        .video-fix {
+            line-height: 0;
+        }
+
+        @media (max-width: 1600px) {
+            .question-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 1400px) {
+            .question-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .answers-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-content {
+                width: 1000px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .question-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-content {
+                width: 900px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .question-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .answers-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .expanded-content {
+                flex-direction: column;
+            }
+            
+            .expanded-video {
+                min-width: 100%;
+            }
+
+            .modal-content {
+                width: 95%;
+            }
+
+            .modal-video {
+                max-height: 80vh;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .question-grid {
+                gap: 0.8rem;
+            }
+            
+            .answers-grid {
+                gap: 0.8rem;
+            }
+            
+            .expanded-question {
+                padding: 1.2rem;
+            }
+            
+            .question-card {
+                padding: 0.6rem 0.8rem;
+                min-height: 45px;
+            }
+            
+            .question-card .question-text {
+                font-size: 1rem;
+            }
+
+            .modal-video {
+                max-height: 70vh;
+            }
+
+            .modal-close {
+                font-size: 1.8rem;
+                top: -35px;
+            }
+
+            .modal-method-name {
+                font-size: 1rem;
+                top: -40px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="geometric-decoration"></div>
+        <div class="container">
+            <h1>Video-as-Answer: Predict and Generate Next Video Event with Joint-GRPO</h1>
+            <div class="author-list-header">
+                <a href="https://donahowe.github.io/" target="_blank" class="author-link">
+                    <span>Junhao Cheng<sup>1,†</sup>, </span>
+                </a>
+                <a href="https://liang-hou.github.io/" target="_blank" class="author-link">
+                    <span>Liang Hou<sup>2</sup>, </span>
+                </a>
+                <a href="https://www.xtao.website/" target="_blank" class="author-link">
+                    <span>Xin Tao<sup>2</sup>, </span>
+                </a>
+                <a href="https://scholar.google.com/citations?user=3s9f9VIAAAAJ&hl=en" target="_blank" class="author-link">
+                    <span>Jing Liao<sup>1</sup></span>
+                </a>
+            </div>
+            <div class="affiliations-header">
+                <span><sup>1</sup>City University of Hong Kong</span><br>
+                <span><sup>2</sup>Kling Team, Kuaishou Technology</span><br>
+                <span>†This work was conducted during the author's internship at Kling Team, Kuaishou Technology</span>
+            </div>
+            <div class="external-links">
+                <a href="https://arxiv.org/abs/2506.03126" class="external-link" target="_blank">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1.99 6H7V7h10.01v2zm0 4H7v-2h10.01v2zm-3 4H7v-2h7.01v2z"/>
+                    </svg>
+                    <span>Paper</span>
+                </a>
+                <a href="https://github.com/qiulu66/Anime-Shooter" class="external-link" target="_blank">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
+                    </svg>
+                    <span>Code</span>
+                </a>
+                <a href="https://huggingface.co/qiulu66/AnimeShooterGen" class="external-link" target="_blank">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 013 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9M12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15z"/>
+                    </svg>
+                    <span>Model</span>
+                </a>
+                <a href="https://huggingface.co/datasets/qiulu66/AnimeShooter" class="external-link" target="_blank">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6 10H6v-2h8v2zm4-4H6v-2h12v2z"/>
+                    </svg>
+                    <span>Data</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="page-content-wrapper">
+        <main class="main-content-area">
+            <div class="container">
+
+                <section id="abstract" class="abstract section">
+                    <h2>Abstract</h2>
+                    <div class="teaser-image-container" style="text-align: center; ">
+                        <img src="images/teaser.png" alt="AnimeShooter Teaser" class="teaser-image" style="transform: scale(1.2); display: inline-block;">
+                    </div>
+                    <p>While language models have become impactful in many real-world applications, video generation remains largely confined to entertainment. Motivated by video's inherent capacity to demonstrate physical-world information that is difficult to convey through language alone (e.g., imagine teaching someone to tie a tie using only text), we identify an underutilized opportunity to extend video as a new answer modality for Next-Event Prediction (NEP), formalized as <b>Video-Next-Event Prediction (VNEP)</b>. While the established NEP task takes a video with a procedural or predictive question as input to predict the next event in text, VNEP requires dynamic video responses. This shift from telling to showing unlocks more intuitive and customized answers for procedural learning and creative exploration. However, this task remains challenging for existing models, as it demands an understanding of multimodal input, instruction-conditioned reasoning, and the generation of video with visual and semantic consistency. To address this, we introduce <b>VANS</b>, a model that leverages reinforcement learning to align a Vision-Language Model (VLM) with a Video Diffusion Model (VDM) for VNEP. The core of VANS is our proposed <b>Joint-GRPO</b> that orchestrates the VLM and VDM to function as a unit. Driven by a shared reward on their respective output, it optimizes the VLM to produce captions that are both accurate and friendly to visualize, while guiding the VDM to generate videos that are faithful to these captions and the input visual context. To enable this learning, we craft <b>VANS-Data-100K</b>, a dedicated dataset for the VNEP task. Experiments on procedural and predictive benchmarks demonstrate that VANS achieves state-of-the-art performance in both video event prediction and visualization.</p>
+                </section>
+
+                <section id="Dataset" class="data section">
+                    <h2>VANS-Data-100K Dataset</h2>
+                    <div class="teaser-image-container" style="text-align: center; ">
+                        <img src="images/data.png" alt="AnimeShooter Teaser" class="teaser-image" style="transform: scale(1.2); display: inline-block;">
+                    </div>
+                    <p>
+                        We construct <b>VANS-Data-100K</b>, a comprehensive dataset specifically designed for Video-Next-Event Prediction (VNEP), 
+                        comprising <b>30K procedural</b> and <b>70K predictive</b> samples. Each sample contains an input video, instructional question, 
+                        and multi-modal answer (text and video), addressing the limitations of existing NEP datasets in video quality and question diversity.
+                    </p>
+                </section>
+
+                <section id="method" class="method section">
+                    <h2>VANS Model</h2>
+                    
+                    <div class="method-content">
+                        <!-- 图片部分：并排显示两张图 -->
+                        <div class="method-figures-row">
+                            <div class="method-figure-wrapper">
+                                <div class="method-figure">
+                                    <img src="images/model.png" alt="VANS Architecture" class="method-image vans-image">
+                                    <p class="figure-caption">Overall architecture of VANS: Dual-path processing with VLM for reasoning and VDM for video generation, conditioned on both semantic captions and visual context.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="method-figure-wrapper">
+                                <div class="method-figure">
+                                    <img src="images/grpo.png" alt="Joint-GRPO Comparison" class="method-image grpo-image">
+                                    <p class="figure-caption">Joint-GRPO: Two-stage co-steering optimization that bridges the semantic-to-visual gap between VLM and VDM.</p>
+                                </div>
+                            </div>
+                        </div>
+                
+                        <!-- 文字描述部分 -->
+                        <div class="method-description">
+                            <div class="method-challenge">
+                                <h3>Architecture Design & Challenge</h3>
+                                <p>
+                                    Our proposed <b>VANS</b> processes input videos and questions through a dual-path architecture: the VLM performs instruction-grounded reasoning 
+                                    to generate textual captions describing predicted next events, while the VDM synthesizes videos conditioned on both these 
+                                    semantic guides and low-level visual cues from input frames.
+                                </p>
+                                <p>
+                                    However, this design faces a fundamental limitation: <b>the VLM and VDM are optimized in isolation</b>. The VLM is trained 
+                                    for textual accuracy but receives no feedback on whether its descriptions lead to visually plausible videos. Conversely, 
+                                    the VDM faces the challenge of coordinating two conditioning signals: the VLM's specific caption and the input's visual 
+                                    context. While SFT equips the VDM with basic capabilities, achieving consistent performance on both semantic accuracy 
+                                    and visual fidelity requires further refinement.
+                                </p>
+                                <p>
+                                    This disconnect creates a <i>semantic-to-visual gap</i> where both models operate without awareness of each other's 
+                                    constraints and capabilities. To resolve this, we introduce <b>Joint-GRPO</b> to orchestrate the two models into a 
+                                    cohesive unit for VNEP.
+                                </p>
+                            </div>
+                            
+                            <div class="method-solution">
+                                <h3>Joint-GRPO: Bridging the Semantic-Visual Gap</h3>
+                                <p>
+                                    Joint-GRPO coordinates the VLM and VDM using a joint reward function through structured two-stage optimization, 
+                                    enabling effective co-steering while avoiding the attribution problems of one-stage joint training.
+                                </p>
+                                
+                                <div class="method-highlights">
+                                    <div class="highlight-item">
+                                        <h4>Stage 1: Visualization-Friendly VLM Tuning</h4>
+                                        <p>Optimizes the VLM policy while keeping VDM frozen. The joint reward combines format adherence, text fidelity (ROUGE-L), 
+                                        and video fidelity (CLIP Similarity), guiding the VLM to generate captions that are not only semantically accurate but 
+                                        also visually plausible and actionable for the VDM.</p>
+                                    </div>
+                                    
+                                    <div class="highlight-item">
+                                        <h4>Stage 2: Context-Faithful VDM Adaptation</h4>
+                                        <p>Optimizes the VDM policy using the improved VLM as a frozen anchor. The reward function ensures visual coherence 
+                                        with input context while enforcing strict semantic alignment with the VLM's caption through CLIPScore, preventing 
+                                        the VDM from ignoring captions and merely reconstructing input videos.</p>
+                                    </div>
+                                </div>
+                                <p>
+                                    Through this two-stage optimization, the VLM and VDM co-evolve into a synergistic unit, effectively bridging the 
+                                    semantic-to-visual gap and enabling high-quality Video-Next-Event Prediction.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="procedural" class="section">
+                    <div class="section-title">
+                        <h2>Qualitative Comparison on Procedural Questions</h2>
+                        <p class="subtitle">Click on a question to view the input video and corresponding answers</p>
+                    </div>
+
+                    <div class="question-grid" id="proceduralQuestions">
+                    </div>
+
+                    <div id="expandedProceduralView" class="expanded-question hidden fade-in">
+                    </div>
+                </section>
+
+                <section id="predictive" class="section">
+                    <div class="section-title">
+                        <h2>Qualitative Comparison on Predictive Questions</h2>
+                        <p class="subtitle">Click on a question to view the input video and corresponding answers</p>
+                    </div>
+
+                    <div class="question-grid" id="predictiveQuestions">
+                    </div>
+
+                    <div id="expandedPredictiveView" class="expanded-question hidden fade-in">
+                    </div>
+                </section>
+
+                <section id="generalization" class="section">
+                    <div class="section-title">
+                        <h2>Generalization on Multi-Future Prediction</h2>
+                        <p class="subtitle">Same input video with different questions leads to different future prediction</p>
+                    </div>
+                
+                    <div class="generalization-grid" id="generalizationGrid">
+                    </div>
+                
+                    <div id="expandedGeneralizationView" class="expanded-generalization hidden fade-in">
+                    </div>
+                </section>
+
+                <section id="image-to-video" class="section">
+                    <div class="section-title">
+                        <h2>Generalization on Reasoning Image-to-Video Generation</h2>
+                        <p class="subtitle">Comparison on UI2V-Bench benchmark for reasoning image-to-video generation</p>
+                    </div>
+
+                    <div class="i2v-grid" id="i2vGrid">
+                    </div>
+
+                    <div id="expandedI2VView" class="expanded-i2v hidden fade-in">
+                    </div>
+                </section>
+
+                <section class="section" id="citation">
+                    <div class="container is-max-desktop content">
+                        <h2 class="title">Citation</h2>
+                        <div class="citation-container">
+                            <pre><code id="citation-code">@misc{cheng2025videoasanswer,
+    title  =  {Video-as-Answer: Predict and Generate Next Video Event with Joint-GRPO},
+    author =  {Cheng, Junhao and Hou, Liang and Tao, Xin and Liao, Jing},
+    year   =  {2025},
+    url    =  {https://arxiv.org/abs/2506.03126}
+}</code></pre>
+                            <button class="copy-button" id="copy-btn" title="Copy to clipboard">
+                                <svg class="copy-icon" viewBox="0 0 24 24">
+                                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                                </svg>
+                                <span class="copy-text">Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                
+
+            </div>
+        </main>
+    </div>
+
+    <div class="video-modal" id="videoModal">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">&times;</button>
+            <div class="modal-method-name" id="modalMethodName"></div>
+            <video class="modal-video" controls id="modalVideo">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Video-as-Answer Project. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // 复制功能
+        const copyButton = document.getElementById('copy-btn');
+        const citationCode = document.getElementById('citation-code');
+
+        copyButton.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(citationCode.textContent);
+                
+                // 显示成功状态
+                copyButton.classList.add('copied');
+                
+                // 2秒后恢复原状
+                setTimeout(() => {
+                    copyButton.classList.remove('copied');
+                }, 2000);
+                
+            } catch (err) {
+                // 降级方案
+                const textArea = document.createElement('textarea');
+                textArea.value = citationCode.textContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                copyButton.classList.add('copied');
+                setTimeout(() => {
+                    copyButton.classList.remove('copied');
+                }, 2000);
+            }
+        });
+
+        const questionData = {
+            procedural: [
+                {
+                    id: 'proce_1',
+                    question: "Show me the next step for baked chicken Parmesan.",
+                    answers: {
+                        "Video-GPT": "Not applicable",
+                        "Genmini-FilmWeaver": "[think]Given that the chicken parmesan has been breaded and fried, the next logical step in the baking process would be to remove it from the pan and place it in a preheated oven at the correct temperature.[/think][Ans]Remove the chicken parmesan from the pan with tongs and transfer it to an oven-safe dish. Place the dish in the preheated oven at 350°F (175°C) for 20-25 minutes, or until the chicken is golden brown and cooked through.[/Ans]",
+                        "Omni-Video": "[think]The video shows the cutlets have been fried and initially sauced in the pan. The described next step is to transfer them to a plate and add more sauce.[Ans]A person uses tongs to transfer the two sauced cutlets from the pan onto a clean plate, then spoons additional red sauce over them.",
+                        "Ours (SFT)": "[Think]The input video shows that the cutlets have been fried and are now being sauced in the pan. In typical recipes like chicken parmesan, after applying the sauce, the next step is to add cheese before baking. Therefore, the most logical subsequent action is to sprinkle cheese over the sauced cutlets.[/Think][Ans]A hand adding shredded mozzarella cheese over two breaded cutlets that are covered with red sauce in a frying pan.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]The cooking video shows two breaded chicken cutlets that have been fried to a golden brown and are now coated with tomato sauce in the pan. Based on standard culinary preparation for chicken parmesan, the logical progression after applying the sauce would be to add a layer of cheese before the baking process. This step allows the cheese to melt and create the characteristic cheesy crust during the final baking stage.[/Think][Ans]A hand carefully sprinkling a generous amount of shredded mozzarella cheese over two breaded chicken cutlets that are fully coated with tomato sauce in a frying pan.[/Ans]",
+                        "Ground Truth": "[Think]The user is making chicken parmesan. Based on the video content, the user has just finished drizzling tomato sauce over the fried chicken cutlets. The standard procedure for making chicken parmesan involves topping the sauce with cheese and then baking or melting the cheese. Therefore, the next logical step is to add mozzarella cheese.[/Think][Ans]A hand is showering shredded mozzarella cheese over two breaded chicken cutlets coated with tomato sauce in a skillet.[/Ans]"
+                    }
+                },
+                {
+                    id: 'proce_2', 
+                    question: "Hi, I want to make slime. What should I do next?",
+                    answers: {
+                        "Video-GPT": "Not applicable",
+                        "Genmini-FilmWeaver": "[Think]The user wants to make slime and is asking for the next step. I need to provide a common, initial step in the slime-making process. The most fundamental first step after gathering ingredients is usually to pour the main ingredient, which is glue, into a container. I will assume they have their ingredients ready, and the very next action is to start mixing them in a bowl. Therefore, pouring glue into a bowl is the logical next step.[Ans]The next step is to pour the clear or white school glue into a mixing bowl. Make sure to use a bowl that is big enough to comfortably mix all the ingredients with a spoon.",
+                        "Omni-Video": "[think]The user is currently performing the 'MakeSlime' task. Based on the video content provided (though not visible in this instruction), it can be inferred that the user has completed adding the required components (water and detergent) into the container. According to standard procedures for making slime, after mixing these ingredients, the next step is typically to add additional liquid or a specific component to adjust the consistency or texture. This could involve adding more water, a foaming agent, or a liquid with gel-like properties like glue or cornstarch syrup to achieve the desired consistency. Therefore, the most logical next action is to add water.[/think][caption]A person is holding a yellow cup filled with water, about to pour it into a red plastic basin containing a white foam-like substance.[/caption]",
+                        "Ours (SFT)": "[Think]The user's initial video showed the preparation of a white liquid base in a red container, representing the foundational step in slime-making. After adding various ingredients including activators and colorants, the mixture now requires thorough mechanical agitation. This mixing phase is critical as it initiates the chemical reaction that transforms the liquid components into a cohesive, viscous slime through polymerization. The stirring action helps distribute the activator evenly while developing the characteristic slime texture.[/Think][Ans]A hand stirring a metal spoon through a thick mixture in a red plastic basin, pulling and folding the substance as it transitions from liquid to a cohesive slime that begins to pull away from the container's sides.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]The user's initial video shows 'hands pouring white liquid from one container into a red basin, with a small amount of foam at the bottom and shimmering light on the liquid's surface.' This is typically the first step in making slime, preparing the base liquid (like glue). Integrate User's Completed Steps: The user states they have completed ''add different kinds of ingredients', 'add different kinds of ingredients'' after the initial video. This indicates that the user has already added two or more different components to the base liquid. These could include activators (like borax solution, contact lens solution) or other additives. Deduce Next Step: After adding all the base ingredients and active components, the standard procedure for making slime is to mix them thoroughly to allow them to react and form a viscous slime. Therefore, 'mix the raw materials' is the most logical next step immediately following ingredient addition.[/Think][Ans]In the scene, one hand is using a metal spoon to stir colored pigments within the white liquid in a red plastic basin. Blue, red, and black pigments are mixing with the white liquid, forming marbled textures and swirling patterns.[/Ans]",
+                        "Ground Truth": "[Think]The user's initial video depicted the preparation of a white liquid base in a red container, representing the first step in slime-making. Having since added various ingredients—likely including activators and colorants—the process now requires proper mixing. This crucial step ensures all components react completely to transform the mixture into the desired slime consistency.[/Think][Ans]A hand vigorously stirring a metal spoon inside a red plastic basin, thoroughly blending blue and red color pigments into the white liquid base as swirling, marbled patterns begin to form throughout the mixture.[/Ans]"
+                    }
+                },
+                {
+                    id: 'proce_3',
+                    question: "Hey AI assistant, I'm making a paper windmill and just uploaded a video. What should I do next?",
+                    answers: {
+                        "Video-GPT": "Not applicable",                        
+                        "Genmini-FilmWeaver": "[Think]The user is making a paper windmill and wants to know the next step. Since I don't have access to the video, I need to predict the most logical next step based on the typical sequence of making a paper windmill.Here's a standard sequence:1.  Start with a square piece of paper.2.  Fold it diagonally to find the center and create creases.3.  Cut along these diagonal creases *from each corner towards the center*, but stop before reaching the absolute center (leaving a small circle or square in the middle uncut).4.  **Bring alternating cut corners to the center.** (This is a very common and crucial next step after cutting).5.  Fasten all the brought-in corners and the center point together (usually with a pushpin, thumbtack, or a paper fastener).6.  Attach the windmill to a stick or straw.Given the phrase 'just uploaded a video,' it's highly probable that the video shows the paper *after* it has been cut (step 3). Therefore, the most immediate and common next step would be step 4: bringing the alternating corners to the center to form the blades.[Ans]Take one of the four cut corners, skip the next one, and bring the subsequent cut corner to the center. Repeat this for the remaining two corners. You will end up with four corners brought to the center, overlapping slightly, ready for fastening.[/Ans]",
+                        "Omni-Video": "[think]The person has completed folding the pink paper into a windmill shape. The scissors are still present on the table, suggesting that they were used in the process. The person's hands are adorned with bracelets, which adds a personal touch to the scene. Given the context, the next logical step would be to secure or stabilize the windmill structure.[Caption]The person adjusts the folded paper windmill to ensure it is stable and secure, using their hands to make minor adjustments.",
+                        "Ours (SFT)": "[Think]The user has finished making the paper pinwheel body. Since pinwheels need a handle to function, the next step should be attaching a stick to the back.[/Think][Ans]A hand attaching a wooden stick to the back of a pink paper pinwheel.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]The user has completed the main folding process of the paper pinwheel, forming its distinctive wind-catching structure. Since pinwheels are designed to spin and be handheld, they require a stable handle for practical use. The most common approach is to attach a stick to the pinwheel's center back, allowing it to rotate freely while being held. Therefore, the next logical step should be securing a stick to the back of the pinwheel assembly.[/Think][Ans]One hand carefully positions a wooden stick against the back of a pink paper pinwheel while the other hand secures it in place, with partially visible crafting tools and paper scraps on the work surface around them.[/Ans]",
+                        "Ground Truth": "[Think]The user is currently performing the MakePaperWindMill task and has uploaded an initial video. Based on the video description, the user's hands are folding corners of the pink paper towards the center, which is clearly the initial step in making a paper windmill, and the 'body' of the windmill has been preliminarily formed. For a complete paper windmill, the next step is typically to attach the finished paper windmill to a support so it can spin. Therefore, it is inferred that the user's next operation should be 'fix the wind mill on the bracket'.[/Think][Ans]A pair of hands is shown fixing a pink paper windmill onto a wooden stick, with a purple cloth in the background and a pink rectangular piece of paper on the right.[/Ans]"
+                    }
+                },
+                {
+                    id: 'proce_4',
+                    question: "Hi, I'm making Samosa and just uploaded a video. What should I do next?",
+                    answers: {
+                        "Video-GPT": "Not applicable",
+                        "Genmini-FilmWeaver": "[Think]Based on the uploaded video, the user seems to be preparing a type of food involving vegetables and some form of coating.1.The visual shows vegetable pieces being dipped into a thick, creamy mixture2.The vegetables are then manually shaped into conical forms3.This preparation method resembles various stuffed pastry dishes from different cuisines4.In many culinary traditions, vegetable fillings are typically enclosed in some form of dough wrapper before cooking5.The conical shape suggests the final product might be triangular or cone-shape6.Therefore, the next step would likely involve preparing and adding some form of pastry or dough component to encase the vegetable filling.[/Think][Ans]A person's hands working with vegetable mixture and dough pieces on a wooden surface, preparing to combine them while surrounded by various cooking ingredients and utensils.[/Ans]",
+                        "Omni-Video": "[Think]The user is making Samosa. Based on the video content, it can be inferred that the user has just completed the step of filling the potato mixture into the pastry cone. In the standard samosa making process, after filling the ingredients, the next step is usually to seal the edges of the pastry to form the triangular samosa shape. Therefore, the next logical step is to seal the edges of the pastry.[/Think][Ans]Hands are pinching together the edges of the semicircular pastry to form a triangular samosa shape, with a speckled kitchen countertop in the background.[/Ans]",
+                        "Ours (SFT)": "[Think]The user is preparing samosas and has shared an initial video showing vegetable filling being shaped into cones after batter dipping. This confirms the filling preparation is complete. In traditional samosa making, after preparing the cone-shaped filling, the next essential step is preparing the dough wrapper. The characteristic triangular shape of samosas requires specifically rolled dough pieces. Therefore, the logical next step should be rolling out triangular dough wrappers to accommodate the cone-shaped filling.[/Think][Ans]A hand rolling out dough into thin triangular shapes on a floured surface, preparing wrappers for the samosa filling.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]The user is in the process of making Samosas, as evidenced by the initial video showing vegetable filling being dipped in batter and shaped into cones. This indicates the filling preparation stage is complete. In traditional Samosa preparation, the subsequent critical step involves enclosing the filling with dough. The pastry wrapping not only contains the filling but also creates the characteristic crispy texture when fried. Therefore, the most logical progression is to wrap the vegetable cone in a layer of buttered dough to form the final Samosa shape.[/Think][Ans]A pair of hands carefully wrapping a vegetable-filled cone in thin, buttered dough on a floral-patterned countertop, with excess dough being folded to create the classic triangular Samosa shape.[/Ans]",
+                        "Ground Truth": "[Think]The user is making Samosa. Based on the video content, it can be inferred that the user has just completed the step of filling the potato mixture into the pastry cone. In the standard samosa making process, after filling the ingredients, the next step is usually to seal the edges of the pastry to form the triangular samosa shape. Therefore, the next logical step is to seal the edges of the pastry.[/Think][Ans]Hands are pinching together the edges of the semicircular pastry to form a triangular samosa shape, with a speckled kitchen countertop in the background.[/Ans]"
+                    }
+                },
+                {
+                    id: 'proce_5',
+                    question: "My bike tire is flat. What should I do next?",
+                    answers: {
+                        "Video-GPT": "Not applicable",
+                        "Genmini-FilmWeaver": "[Think]The user reports having a flat bike tire and is seeking guidance on the next step. This represents a common maintenance scenario requiring sequential problem-solving. While a complete tire repair might involve multiple stages, the most immediate and practical intervention for a flat tire is to attempt reinflation. This initial approach serves as both a diagnostic measure and potential quick solution, as some tires may simply have slow leaks that can be temporarily addressed through inflation. Therefore, the most logical first response would be to use a pump and add air to the tire.[/Think][Ans]You should use a bicycle pump to add air to the flat tire. This may temporarily resolve the issue or help identify if there is a more serious problem that requires further repair.[/Ans]",
+                        "Omni-Video": "[think]The person in the video is performing the first step of fixing a flat bicycle tire, which involves removing the valve core pin from the valve stem. This is likely part of the process to remove the inner tube and replace it with a new one or repair it.[answer]The person will use a tool (likely a valve core remover) to push the core out of the valve stem, which allows access to the inner tube for deflation or replacement.[/answer]",
+                        "Ours (SFT)": "[Think]The user is engaged in bicycle tire maintenance, with the video focusing on the valve stem area. The visible interaction with the valve suggests either recent installation or inspection work has been completed. In standard bicycle repair procedures, any valve-related service is typically followed by pressure restoration to make the tire operational. Since the valve serves as the entry point for air, and the tire appears deflated, the necessary subsequent action involves using a pump to reinflate it to the recommended pressure level.[/Think][Ans]A close-up shot of a hand firmly pressing a bicycle pump's nozzle onto the tire valve stem, with partial view of the deflated tire in the background, preparing to initiate the inflation process.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]Based on the user's description of replacing a bicycle tire valve stem, the initial video provides important context. We can see a hand securing the valve stem cap onto a bicycle tire against a clean white background. This visual evidence strongly suggests that the core replacement work has been successfully completed, as the cap is typically the final component to be installed. Now that the new valve stem is in place, the bicycle tire remains uninflated and non-functional. In standard bicycle maintenance procedures, the critical step following valve stem replacement is immediately reinflating the tire to restore proper pressure and functionality. The logical progression from this point would naturally involve using a pump to inflate the tire through the newly installed valve stem.[/Think][Ans]A close-up view of a hand firmly attaching a bicycle pump's nozzle to the freshly replaced valve stem, positioned against a softly blurred white background, ready to begin the inflation process.[/Ans]",
+                        "Ground Truth": "[Think]The user explicitly states they are performing the 'ReplaceTyreValveStem' operation. The initial video content shows a hand unscrewing a valve stem cap attached to a bicycle tire, on a white background. This strongly suggests the user has either completed the removal of the old valve stem or the installation of the new one, and is in the process of re-securing the valve cap, or is at an intermediate stage of installation. Considering the primary purpose of replacing a valve stem is to enable proper tire inflation, and the immediate next task after replacement is to restore tire pressure. Therefore, the most logical next step is to inflate the tire. The 'ideal state description after completing this operation' – 'a hand is shown connecting the nozzle of a pump to the valve stem of the bicycle tire, with a blurred white background' – confirms that inflating the tire is the expected next action.[/Think][Ans]A hand is shown connecting the nozzle of a pump to the valve stem of the bicycle tire, with a blurred white background.[/Ans]"
+                    }
+                }
+            ],
+            predictive: [
+                {
+                    id: 'predict_1',
+                    question: "What will the sitting man do if he is irritable?",
+                    answers: {
+                        "Video-GPT": "Not applicable",
+                        "Genmini-FilmWeaver": "[Think]The user is asking what the man, who is currently sitting at a table and using a laptop, would do if he becomes irritable. I need to consider common behaviors associated with irritability in this context. Observe the man's current activity: He is focused on his laptop, seemingly working or browsing. Consider what causes irritability in such a setting: This could be frustration with his work, something he's seeing on the screen, or dissatisfaction with progress. Predict irritable behaviors: Verbal expression: The most direct manifestation would be verbal complaints. He might mutter criticisms about the task, express dissatisfaction aloud, or complain about the situation to himself. Facial and body language: This would be accompanied by a frown, shaking his head, or making dismissive hand gestures. Object interaction: He might gesture toward the laptop screen in a frustrated manner while complaining. Given that he is alone and engaged with the laptop, his irritability would most naturally be expressed through verbal complaints directed at the device or the task at hand, combined with supporting frustrated body language. [Ans] If the man becomes irritable, he will likely start complaining aloud. He might frown at the laptop screen and make a frustrated hand gesture while muttering criticisms about his work or the device. He could shake his head in disapproval and let out an audible sigh of exasperation, clearly voicing his annoyance.[/Ans]",
+                        "Omni-Video": "[think]The video shows a heated discussion between two individuals. When conflicts escalate between an agitated speaker and an irritable listener, verbal confrontations can quickly turn physical. The seated man's visible irritation would likely manifest in sudden aggressive actions, leading to immediate physical retaliation against the standing speaker.[/think][Ans]The seated man suddenly stands up and throws a punch at the standing man, triggering a physical fight between the two individuals.[/Ans]",
+                        "Ours (SFT)": "[Think]The video depicts a formal setting with a standing interviewer and a seated candidate in a suit. In a high-pressure interview situation, an irritable candidate who becomes frustrated with the questions might direct his anger toward the perceived source of evaluation. Instead of responding to the interviewer, he would likely vent his frustration by addressing the recording camera, treating it as a symbolic representation of the judging panel.[/Think][Ans]The man in a suit turns toward the camera and shouts angrily, his face showing intense frustration as he directs his outburst at the lens.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]The video shows a standing man speaking animatedly to a seated man in a suit. When an irritable person is addressed in this manner, they are unlikely to remain silent. Instead, they would typically interrupt with a loud verbal response, expressing their frustration through raised voice and aggressive tone while directing their anger toward the speaker.[/Think][Ans]The seated man in a black suit shouts back angrily, his face contorted in frustration as he raises his voice at the standing speaker.[/Ans]",
+                        "Ground Truth": "[Think]The input video shows a standing man speaking animatedly with gestures to a seated man wearing glasses. When an agitated speaker addresses a listener who possesses an irritable temperament, the listener is unlikely to remain passive. Instead of continuing to listen quietly, an irritable person would typically interrupt or respond immediately with heightened emotional intensity. The seated man would likely raise his voice, use sharp gestures, and display clear facial expressions of anger or frustration as he counters the standing man's points.[/Think][Ans]A man in a black suit shouting back angrily with tense facial expressions and aggressive hand gestures.[/Ans]"
+                    }
+                },
+                {
+                    id: 'predict_2',
+                    question: "what she'll probably do next?",
+                    answers: {
+                        "Video-GPT": "Not applicable",
+                        "Genmini-FilmWeaver": "[Think]The initial video clearly shows a woman in a bedroom setting, using a hammer to install a new nail into the wall.Upon closer observation, there is already a framed painting securely hung on another part of the same wall, indicating the space is in a state of ongoing decoration.In interior design, it is a common practice to arrange multiple artworks on a single wall to create a curated gallery wall or a balanced compositional layout.The user's action of adding a new nail, while an existing painting is already present, logically points towards the intention of expanding the current display.Therefore, the most probable next step is that she will hang an additional painting alongside the existing one, rather than replacing it or performing an unrelated action.[/Think][Ans]A woman carefully hangs a new framed painting on the freshly installed nail, positioning it beside the previously hung artwork to create a balanced pair of decorations on the bedroom wall.",
+                        "Omni-Video": "[think] The woman has been using the hammer to remove a piece of wood or paneling from the wall. She is now standing in front of the wall with the hammer in her right hand, indicating that she may be planning to continue removing more panels or taking apart the wall structure. Based on this, it seems likely that she will either continue removing panels or use the hammer to break up a section of the wall.[caption]The woman continues to hold the hammer up to the wall while looking at it.",
+                        "Ours (SFT)": "[Think]The video shows a woman hammering a nail into her bedroom wall, a common preparation step for hanging artwork. After securing the nail, the natural progression would be to verify if the painting is ready to be displayed. This typically involves lifting the frame to assess its positioning against the wall and visually evaluating how it will look in the intended space before final hanging.[/Think][Ans]A woman lifts a framed painting with both hands, holding it up against the wall to examine its placement and appearance.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]The video depicts a woman in a bedroom environment using a hammer to drive a nail into the wall. This activity aligns with standard home decoration procedures where wall-mounted fixtures require secure anchoring points. The careful, measured hammer strikes suggest she is creating a precise mounting point rather than performing construction work. Given the residential context and the use of a single nail, this most likely serves as the foundation for displaying a picture frame or decorative wall art. After successfully installing the nail, the subsequent action would involve methodically placing the artwork onto the mounting hardware, verifying its stability, and making fine adjustments to achieve perfect alignment and visual balance within the room's décor scheme.[/Think][Ans]A woman gently positions a medium-sized framed painting onto the newly installed wall nail, using both hands to carefully adjust its placement until perfectly level.[/Ans]",
+                        "Ground Truth": "[Think]The input video shows the lady performing a preparatory action, which is fixing a nail into the wall. Based on inferring the purpose of this action, nailing is typically done to hang an item. Therefore, after completing the step of fixing the nail, the lady is most likely to retrieve an item and hang it on the nail to complete the intended task.[/Think][/Ans]The woman hangs a framed picture (or photo) on the freshly nailed nail on the wall.[Ans]"
+                    }
+                },
+                {
+                    id: 'predict_3',
+                    question: "This girl encountered a harasser. How will she bravely defend herself?",
+                    answers: {
+                        "Video-GPT": "Not applicable",
+                        "Genmini-FilmWeaver": "[think]Based on the visual information provided in the video clip, it appears that the young woman is in a public restroom with a somewhat tense atmosphere suggested by her posture and the setting. Given the instruction about her encountering a harasser and needing to defend herself, we can infer that the next scene would likely involve her facing off against an unseen aggressor. However, since the video does not show any direct action or interaction with another person, the next event could be her preparing for self-defense, perhaps by gathering courage or finding a means to confront the harasser.[caption]The young woman takes a deep breath, preparing herself mentally for what may come next as she stands poised in the restroom, readying herself to face whatever challenges lie ahead. The camera focuses on her determined expression, highlighting her resolve to stand up for herself. This scene sets the stage for her potential confrontation with the harasser.[/caption]",
+                        "Omni-Video": "[Think]The video shows a woman in a sailor suit standing in a corridor. If she were to encounter a harasser, her most immediate and instinctive reaction would likely be to ensure her own safety by creating distance. This self-preservation instinct would naturally lead her to quickly turn and run away from the potential threat.[/Think][Ans]The woman in a sailor suit suddenly turns around with a panicked expression and runs quickly down the corridor.[/Ans]",
+                        "Ours (SFT)": "[think] The scene depicts a young woman in a red, white, and blue uniform walking confidently through a hallway. Given her attire and demeanor, it seems she might be a performer or part of an entertainment team. The presence of a man in a suit suggests he could be a potential threat or a spectator. The hallway setting indicates she might be moving towards a performance area or venue. Based on these points, she might use her surroundings effectively:- If there are other people around (e.g., security staff), they can provide immediate support.- She can use her confidence and presence to intimidate the potential threat, making it less likely that she would confront him directly.- If she feels threatened, she could use her environment to her advantage, perhaps blocking him with her body or using any available objects like furniture or props.Given these considerations, she may choose to:- Move into a more populated area where others can assist her.- Use her environment to her advantage, creating a barrier if needed.- Maintain her composure and use her confidence to deter him.[Ans] She decides to move into a more populated area and use her confidence to deter the potential threat.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]The input video shows a woman in a sailor suit standing alone in a corridor, facing the camera with an alert posture. Considering the scenario where she encounters a harasser, the logical behavioral sequence would be: Threat Recognition: Her initial attentive stance would shift to one of fear and alarm upon perceiving a threat. Self-defense Priority: In such situations, personal safety becomes the immediate concern. A common and recommended self-defense measure, especially for individuals who may carry them, is the use of deterrents like pepper spray Proactive Defense: Rather than waiting passively, a proactive response would be to quickly retrieve the defensive tool and ready it against the perceived threat. Therefore, the most logical action sequence is for her to display fear and prepare to use a self-defense tool.[/Think][Ans]The woman in a sailor uniform, with a frightened expression, quickly takes a pepper spray out of her bag and raises it in a defensive stance.[/Ans]",
+                        "Ground Truth": "[Think]The video shows a woman in a sailor suit standing alertly in a corridor. If confronted by a harasser, her natural reaction would be to feel threatened and take defensive action. A logical protective measure would be to retrieve and ready a self-defense tool like pepper spray from her bag.[/Think][Ans]The woman in a sailor uniform looks frightened and pulls out pepper spray from her bag, holding it up defensively.[/Ans]"
+                    }
+                },
+                {
+                    id: 'predict_4',
+                    question: "What will she do after 15 minutes?",
+                    answers: {
+                        "Video-GPT": "Not applicable",
+                        "Genmini-FilmWeaver": "[think]Based on the context provided, it appears that the person in the video is applying a facial mask. Given that the question asks about what will happen after 15 minutes, it is reasonable to infer that the mask needs time to work effectively before being removed. Therefore, the next logical step would be for her to wait for the recommended duration and then proceed to remove the mask.[/think][caption]She will wait for 15 minutes and then remove the mask from her face.[/caption]",
+                        "Omni-Video": "[think]The input video shows a woman applying a black substance to her face. Given the even application and dark pigmentation, this appears to be a cosmetic procedure for artificial tanning or theatrical makeup rather than a skincare mask. In makeup applications, after laying the base color, the next step typically involves using specialized tools to refine the application. Therefore, after completing the initial coating, she would likely continue with a makeup brush to blend and perfect the cosmetic effect.[/think][Ans]The woman picks up a makeup brush to continue blending and refining the black cosmetic product on her face.[/Ans]",
+                        "Ours (SFT)": "[think]The input video shows a woman applying a black mask to her face. After allowing the mask to work for 15 minutes, she would naturally want to check the results in a mirror before proceeding to remove it. Since this appears to be a rinse-off mask rather than a peel-off type, the proper removal method would involve washing with water to completely cleanse the residue from her skin.[/think][Ans]The woman admires her skin, then begins washing her face with water to remove the mask.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]The input video depicts a woman in the process of applying a black adhesive mask to her facial skin. This specific type of cosmetic treatment is designed to dry and form a cohesive film that mechanically extracts impurities from pores when removed. The temporal cue 'after 15 minutes' corresponds precisely to the recommended drying duration for such peel-off masks to achieve optimal adhesion and efficacy. Unlike rinse-off clay masks that require washing, the fundamental mechanism of this product necessitates complete drying followed by physical peeling. Therefore, the most logically consistent subsequent action would involve carefully detaching the fully cured mask from the facial surface to complete the deep cleansing procedure.[/Think][Ans]The woman carefully grips the edge of the completely dried black mask and begins peeling it upward from her chin, gradually revealing the cleansed skin underneath.[/Ans]",
+                        "Ground Truth": "[Think]The user is documenting a blackhead removal process using glue. The uploaded video shows a woman who has just finished applying a black mask evenly across her face. In such beauty treatments, the mask requires sufficient drying time to effectively adhere to and extract impurities from the skin. Given that 15 minutes is a standard drying period for most peel-off masks, the most logical action after this time would be to carefully remove the dried mask by peeling it off, which would complete the blackhead extraction process.[/Think][Ans]Fifteen minutes later, the woman begins carefully peeling off the completely dried black mask from her forehead, slowly pulling it downward to reveal the cleaned skin beneath.[/Ans]"
+                    }
+                },
+                {
+                    id: 'predict_5',
+                    question: "If there's nothing outside, what would she do?",
+                    answers: {
+                        "Video-GPT": "Not applicable",
+                        "Genmini-FilmWeaver": "[Think]The initial video shows a young woman peeking out from behind a partially open door, her body language indicating clear vigilance through tense shoulders, cautious movements, and focused observation. From a behavioral psychology perspective, this type of watchful observation typically stems from a need to assess environmental safety. When continuous monitoring confirms no potential threats, an individual's defensive posture naturally diminishes. After confirming the safety of the environment outside the door, the person's cognitive assessment shifts from 'potential danger' to 'environmental safety,' leading to corresponding behavioral adjustments. Based on behavioral continuity principles, the natural sequence of actions following the conclusion of observation should include: relaxation of facial muscles, turning the body toward the interior, normalization of gait, and shifting attention away from the doorway. Considering the door's symbolic significance as a spatial boundary, moving away from the doorway area represents a transition from a 'boundary monitoring' state to returning to 'normal indoor activity.'[/Think][Ans]The woman's vigilant expression gradually softens into one of relief as she concludes her observation. She deliberately turns her body away from the door, her shoulder tension visibly easing as she takes a few calm steps back into the room, her attention shifting inward as she moves away from the doorway.[/Ans]",
+                        "Omni-Video": "[think]The person in the video appears to be inside a building, possibly approaching a door labeled '4'. Given the context, it seems plausible that the individual might be entering or exiting this location. However, without more information about her intentions or the environment outside, it's speculative to determine her exact actions. If there's nothing outside, the most likely scenario would be that she continues her current activity or remains stationary. She could be waiting for someone or something, checking her phone, or simply observing her surroundings. In the absence of additional context, we can only speculate about her next actions based on common human behavior in such situations. For example, if she were waiting for someone, she might continue to stand in the doorway, possibly looking around or checking her watch.[/Think][Ans]The person stands at the doorway, contemplating her next move.[/Ans]",
+                        "Ours (SFT)": "[Think]The input video captures a woman in a clear state of cautious observation, peering through a partially opened doorway with visible vigilance in her expression and methodical scanning movements. This behavioral presentation indicates an active threat assessment process. When such careful examination yields no evidence of danger, the psychological and physiological response typically follows a predictable pattern: the initial hyper-alert state gradually subsides, muscle tension decreases, and the individual transitions from defensive monitoring to normal behavior. The most natural progression in this scenario would be to conclude the surveillance and reorient her attention inward, moving away from the doorway as the perceived need for vigilance diminishes.[/Think][Ans]The woman's tense expression softens into one of relief as she concludes her observation. She deliberately turns her body away from the doorway, her shoulders relaxing visibly as she shifts her focus back to the interior space.[/Ans]",
+                        "Ours (Joint-GRPO)": "[Think]The input video depicts a woman exhibiting cautious behavior as she peers from behind a partially opened door, her facial expression showing clear vigilance and her eyes systematically scanning the external environment. This behavioral pattern suggests she is assessing potential risks or investigating suspicious circumstances. According to psychological and behavioral studies, when an individual engages in threat assessment and finds no evidence of danger after thorough observation, their heightened state of alertness naturally diminishes. The absence of visible threats would logically lead to cognitive reassessment, resulting in decreased anxiety and the decision to terminate the protective behavior. Furthermore, the door serves as both a physical and psychological boundary - closing it represents restoring security and returning to normal activity. Therefore, upon confirming the absence of any external threat, the most probable behavioral sequence would be: gradual relaxation of facial tension, followed by the deliberate action of closing the door and resuming indoor activities.[/Think][Ans]The woman turns around, slowly closes the door until it clicks shut, her posture visibly more relaxed.[/Ans]",
+                        "Ground Truth": "[Think]The input video shows a woman cautiously peeking out from behind a door with a vigilant expression, carefully observing the area outside. Based on common behavioral logic, when someone is in a state of alert observation and finds no unusual presence or threat after examination, their tension typically eases. In such a scenario, the most reasonable action would be to end the observation, retreat to safety, and close the door to resume normal activity. Therefore, if she sees nothing outside, she would likely relax her vigilance and close the door to return indoors.[/Think][Ans]After confirming there is nothing outside, the woman relaxes her expression, closes the door, and turns back into the room.[/Ans]"
+                    }
+                }
+            ]
+        };
+
+        const generalizationData = [
+            {
+                id: 'gen_1',
+                questions: [
+                    "What is her reaction if she gets burned?",
+                    "What is her reaction if she gets burned in an exaggerated movie?",
+                    "What is her reaction if she eats something spicy in an exaggerated movie?",
+                ],
+                answers: ["con1.mp4", "con2.mp4", "con3.mp4"]
+            },
+            {
+                id: 'gen_2',
+                questions: [
+                    "Show her reaction if she sees her grandson.",
+                    "Show her reaction if she sees her husband.",
+                    "Show her reaction if she sees the personification of death.",
+                ],
+                answers: ["con1.mp4", "con2.mp4", "con3.mp4"]
+            },
+            {
+                id: 'gen_3',
+                questions: [
+                    "If this message is from her best friend, what will she do?",
+                    "If the girl herself doesn't pass the exam, what will she do?",
+                    "If this message is from her rival in love, how will she react?",
+                ],
+                answers: ["con1.mp4", "con2.mp4", "con3.mp4"]
+            },
+            {
+                id: 'gen_4',
+                questions: [
+                    "How will he try to counterattack?",
+                    "If this man is not carrying a weapon, what is he most likely to do?",
+                    "What will happen if his counterattack fails?",
+                ],
+                answers: ["con1.mp4", "con2.mp4", "con3.mp4"]
+            }
+        ];
+
+        const i2vData = [
+            {
+                id: 'i2v_1',
+                question: "A strong wind blows by.",
+                answers: [
+                    { name: "Wan", file: "wan.mp4" },
+                    { name: "Qwen-Wan", file: "qwen_wan.mp4" },
+                    { name: "Gemini-Wan", file: "gemini_wan.mp4" },
+                    { name: "Ours", file: "ours.mp4" }
+                ]
+            },
+            {
+                id: 'i2v_2',
+                question: "Leave the bananas for a week.",
+                answers: [
+                    { name: "Wan", file: "wan.mp4" },
+                    { name: "Qwen-Wan", file: "qwen_wan.mp4" },
+                    { name: "Gemini-Wan", file: "gemini_wan.mp4" },
+                    { name: "Ours", file: "ours.mp4" }
+                ]
+            },
+            {
+                id: 'i2v_3',
+                question: "The man picks up the unused paper.",
+                answers: [
+                    { name: "Wan", file: "wan.mp4" },
+                    { name: "Qwen-Wan", file: "qwen_wan.mp4" },
+                    { name: "Gemini-Wan", file: "gemini_wan.mp4" },
+                    { name: "Ours", file: "ours.mp4" }
+                ]
+            },
+            {
+                id: 'i2v_4',
+                question: "Turn this off.",
+                answers: [
+                    { name: "Wan", file: "wan.mp4" },
+                    { name: "Qwen-Wan", file: "qwen_wan.mp4" },
+                    { name: "Gemini-Wan", file: "gemini_wan.mp4" },
+                    { name: "Ours", file: "ours.mp4" }
+                ]
+            }
+        ];
+
+        function initializeI2VGrid() {
+            const grid = document.getElementById('i2vGrid');
+            
+            grid.innerHTML = '';
+            
+            i2vData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'i2v-card';
+                card.innerHTML = `
+                    <p class="i2v-text">Case ${index + 1}</p>
+                `;
+                card.addEventListener('click', () => expandI2V(item, index));
+                grid.appendChild(card);
+            });
+        }
+
+        function expandI2V(item, index) {
+            const allCards = document.querySelectorAll('#i2vGrid .i2v-card');
+            allCards.forEach(card => card.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            
+            const expandedView = document.getElementById('expandedI2VView');
+            
+            let answersHTML = '';
+            item.answers.forEach((answer) => {
+                const videoPath = `videos/${item.id}/${answer.file}`;
+                answersHTML += `
+                    <div class="i2v-answer-card">
+                        <div class="i2v-method-name">${answer.name}</div>
+                        <div class="i2v-video-container" onclick="openVideoModal('${videoPath}', '${answer.name} - Case ${index + 1}')">
+                            <video class="i2v-video" autoplay muted loop playsinline>
+                                <source src="${videoPath}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            expandedView.innerHTML = `
+                <div class="i2v-content">
+                    <div class="i2v-image-container" onclick="openImageModal('videos/${item.id}/input.png', 'Input Image - Case ${index + 1}')">
+                        <img src="videos/${item.id}/input.png" alt="Input Image" class="i2v-image">
+                    </div>
+                    <div class="i2v-question">
+                        <h4>Question</h4>
+                        <p>${item.question}</p>
+                    </div>
+                </div>
+                <div class="i2v-answers-section">
+                    <h3>Generated Videos</h3>
+                    <div class="i2v-answers-grid">
+                        ${answersHTML}
+                    </div>
+                </div>
+            `;
+            
+            expandedView.classList.remove('hidden');
+            expandedView.classList.add('fade-in');
+            
+            const subtitle = document.querySelector('#image-to-video .section-title .subtitle');
+            subtitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            setupVideoControls();
+        }
+
+        function openImageModal(imageSrc, title) {
+            const imageModal = document.createElement('div');
+            imageModal.className = 'video-modal active';
+            imageModal.innerHTML = `
+                <div class="modal-content">
+                    <button class="modal-close" onclick="closeImageModal(this)">&times;</button>
+                    <div class="modal-method-name">${title}</div>
+                    <img src="${imageSrc}" alt="${title}" class="modal-image-square">
+                </div>
+            `;
+            document.body.appendChild(imageModal);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal(closeBtn) {
+            const imageModal = closeBtn.closest('.video-modal');
+            imageModal.remove();
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeQuestionGrid('procedural');
+            initializeQuestionGrid('predictive');
+            initializeGeneralizationGrid();
+            initializeI2VGrid();
+            setupModalEvents();
+        });
+
+        function initializeGeneralizationGrid() {
+            const grid = document.getElementById('generalizationGrid');
+            
+            grid.innerHTML = '';
+            
+            generalizationData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'generalization-card';
+                card.innerHTML = `
+                    <p class="generalization-text">Case ${index + 1}</p>
+                `;
+                card.addEventListener('click', () => expandGeneralization(item, index));
+                grid.appendChild(card);
+            });
+        }
+
+        function expandGeneralization(item, index) {
+            const allCards = document.querySelectorAll('#generalizationGrid .generalization-card');
+            allCards.forEach(card => card.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            
+            const expandedView = document.getElementById('expandedGeneralizationView');
+            
+            let questionsHTML = '';
+            item.questions.forEach((question, qIndex) => {
+                questionsHTML += `
+                    <div class="question-item">
+                        <h4>Question ${qIndex + 1}</h4>
+                        <p>${question}</p>
+                    </div>
+                `;
+            });
+            
+            let answersHTML = '';
+            item.answers.forEach((answer, aIndex) => {
+                const videoPath = `videos/${item.id}/${answer}`;
+                answersHTML += `
+                    <div class="generalization-answer-card">
+                        <div class="generalization-method-name">Response ${aIndex + 1}</div>
+                        <div class="answer-video-container video-fix" onclick="openVideoModal('${videoPath}', 'Response ${aIndex + 1} - Scenario ${index + 1}')">
+                            <video class="answer-video" autoplay muted loop playsinline>
+                                <source src="${videoPath}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            expandedView.innerHTML = `
+                <div class="generalization-content">
+                    <div class="generalization-input video-fix" onclick="openVideoModal('videos/${item.id}/input.mp4', 'Input Video - Scenario ${index + 1}')">
+                        <video autoplay muted loop playsinline>
+                            <source src="videos/${item.id}/input.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <div class="generalization-questions">
+                        ${questionsHTML}
+                    </div>
+                </div>
+                <div class="generalization-answers-section">
+                    <h3>Model Responses</h3>
+                    <div class="generalization-answers-grid">
+                        ${answersHTML}
+                    </div>
+                </div>
+            `;
+            
+            expandedView.classList.remove('hidden');
+            expandedView.classList.add('fade-in');
+            
+            const subtitle = document.querySelector('#generalization .section-title .subtitle');
+            subtitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            setupVideoControls();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeQuestionGrid('procedural');
+            initializeQuestionGrid('predictive');
+            initializeGeneralizationGrid();
+            setupModalEvents();
+        });
+
+        const methods = [
+            { name: "Video-GPT", file: "videogpt.mp4" },
+            { name: "Genmini-FilmWeaver", file: "gen_film.mp4" },
+            { name: "Omni-Video", file: "omnivideo.mp4" },
+            { name: "Ours (SFT)", file: "sft.mp4" },
+            { name: "Ours (Joint-GRPO)", file: "jointgrpo.mp4" },
+            { name: "Ground Truth", file: "gt.mp4" }
+        ];
+
+        const videoModal = document.getElementById('videoModal');
+        const modalVideo = document.getElementById('modalVideo');
+        const modalClose = document.getElementById('modalClose');
+        const modalMethodName = document.getElementById('modalMethodName');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeQuestionGrid('procedural');
+            initializeQuestionGrid('predictive');
+            setupModalEvents();
+        });
+
+        function setupModalEvents() {
+            modalClose.addEventListener('click', closeVideoModal);
+            
+            videoModal.addEventListener('click', function(e) {
+                if (e.target === videoModal) {
+                    closeVideoModal();
+                }
+            });
+            
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && videoModal.classList.contains('active')) {
+                    closeVideoModal();
+                }
+            });
+        }
+
+        function openVideoModal(videoSrc, methodName) {
+            modalVideo.src = videoSrc;
+            modalMethodName.textContent = methodName;
+            videoModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            modalVideo.play().catch(e => {
+                console.log('Autoplay prevented:', e);
+            });
+        }
+
+        function closeVideoModal() {
+            videoModal.classList.remove('active');
+            document.body.style.overflow = '';
+            modalVideo.pause();
+            modalVideo.src = '';
+        }
+
+        function initializeQuestionGrid(type) {
+            const grid = document.getElementById(`${type}Questions`);
+            const questions = questionData[type];
+            
+            grid.innerHTML = '';
+            
+            questions.forEach((q, index) => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.innerHTML = `
+                    <p class="question-text">Question ${index + 1}</p>
+                `;
+                card.addEventListener('click', () => expandQuestion(type, q, index));
+                grid.appendChild(card);
+            });
+        }
+
+        function expandQuestion(type, question, questionIndex) {
+            const allCards = document.querySelectorAll(`#${type}Questions .question-card`);
+            allCards.forEach(card => card.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            
+            const expandedView = document.getElementById(`expanded${type.charAt(0).toUpperCase() + type.slice(1)}View`);
+            
+            let answersHTML = '';
+            methods.forEach(method => {
+                const videoPath = `videos/${question.id}/${method.file}`;
+                const answerText = question.answers[method.name] || "Answer description not available.";
+                
+                answersHTML += `
+                    <div class="answer-card">
+                        <div class="method-name">${method.name}</div>
+                        <div class="answer-video-container video-fix" onclick="openVideoModal('${videoPath}', '${method.name}')">
+                            <video class="answer-video" autoplay muted loop playsinline>
+                                <source src="${videoPath}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <div class="answer-text-container" onclick="toggleAnswerText(this)">
+                            <p class="answer-text-preview">${answerText}</p>
+                            <p class="answer-text-full">${answerText}</p>
+                            <button class="expand-text-btn">Show more</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            expandedView.innerHTML = `
+                <div class="expanded-content">
+                    <div class="expanded-video video-fix" onclick="openVideoModal('videos/${question.id}/input.mp4', 'Input Video - Question ${questionIndex + 1}')">
+                        <video autoplay muted loop playsinline>
+                            <source src="videos/${question.id}/input.mp4" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <div class="expanded-question-text">
+                        <h4>Question ${questionIndex + 1}</h4>
+                        <p>${question.question}</p>
+                    </div>
+                </div>
+                <div class="answer-section">
+                    <h3>Generated Answers</h3>
+                    <div class="answers-grid">
+                        ${answersHTML}
+                    </div>
+                </div>
+            `;
+                    
+            expandedView.classList.remove('hidden');
+            expandedView.classList.add('fade-in');
+
+            const subtitle = document.querySelector(`#${type} .section-title .subtitle`);
+            subtitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            setupVideoControls();
+        }
+
+        function toggleAnswerText(element) {
+            const card = element.closest('.answer-card');
+            card.classList.toggle('expanded');
+            const btn = card.querySelector('.expand-text-btn');
+            btn.textContent = card.classList.contains('expanded') ? 'Show less' : 'Show more';
+        }
+
+        function setupVideoControls() {
+            const videos = document.querySelectorAll('video');
+            videos.forEach(video => {
+                video.autoplay = true;
+                video.loop = true;
+                video.muted = true;
+                video.playsInline = true;
+                
+                video.addEventListener('play', function() {
+                    if (this.parentElement.classList.contains('expanded-video')) {
+                        videos.forEach(otherVideo => {
+                            if (otherVideo !== this && otherVideo.parentElement.classList.contains('expanded-video')) {
+                                otherVideo.pause();
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
+        const sections = document.querySelectorAll('.section');
+        const options = {
+            root: null,
+            threshold: 0.1,
+            rootMargin: "0px"
+        };
+
+        const observer = new IntersectionObserver(function(entries, observer) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, options);
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+
+</html>
